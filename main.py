@@ -95,72 +95,6 @@ class Registration(Resource):
                 'message' : f"Error {e}"
             }, 500
 
-parser4BasicSignIn = reqparse.RequestParser()
-parser4BasicSignIn.add_argument('email', type=str, help='Email Address', location='json', required=True)
-parser4BasicSignIn.add_argument('password', type=str, help='Password', location='json', required=True)
-
-@api.route('/user/basic-signin')
-class BasicLogin(Resource):
-    @api.expect(parser4BasicSignIn)
-    def post(self):
-        args = parser4BasicSignIn.parse_args()
-        email = args['email']
-        password = args['password']
-
-        if not email or not password :
-            return { "message" : "Please type email and passowrd" }, 400
-
-        user = db.session.execute(db.select(User).filter_by(email=email)).first()
-        
-        if not user :
-            return { "message" : "User not found, please do register" }, 400
-
-        if not user[0].is_verify :
-            return { "message" : "Accunt not actived, check email to verify" }, 401
-
-        if check_password_hash(user[0].password, password):
-            payload = {
-                'id' : user[0].id,
-                'name' : user[0].name,
-                'email' : user[0].email
-            }
-
-            payload_json = json.dumps(payload)
-            message_bytes = payload_json.encode('ascii')
-            base64_bytes = base64.b64encode(message_bytes)
-            base64_message = base64_bytes.decode('ascii')
-
-            return{ 'token' : base64_message }, 200
-        else:
-            return { "message" : "Wrong password, try again" }, 400
-
-
-parser4Basic = reqparse.RequestParser()
-parser4Basic.add_argument('Authorization', type=str, location='headers', required=True, help='Fill using token login')
-
-@api.route('/user/basic-auth')
-class BasicAuth(Resource):
-    @api.expect(parser4Basic)
-    def post(self):
-        print(f"ljjksfad")
-        args = parser4Basic.parse_args()
-        basicAuth = args['Authorization']
-        base64message = basicAuth[6:]
-        
-        msgBytes = base64message.encode('ascii')
-        base64Bytes = base64.b64decode(msgBytes)
-        pair = base64Bytes.decode('ascii')
-        decoded_payload_obj = json.loads(pair)
-
-        id = decoded_payload_obj['id']
-        name = decoded_payload_obj['name']
-        email = decoded_payload_obj['email']
-        return {
-            'id': id,
-            'name': name,
-            'email': email
-        }
-
 @api.route("/user/verify-account/<token>")
 class VerifyAccount(Resource):
     def get(self, token):
@@ -401,6 +335,70 @@ class ResetPassword(Resource):
             response = make_response(render_template('response.html', success=False, message='Reset password failed'), 400)
             response.headers['Content-Type'] = 'text/html'
             return response
+
+parser4BasicSignIn = reqparse.RequestParser()
+parser4BasicSignIn.add_argument('email', type=str, help='Email Address', location='json', required=True)
+parser4BasicSignIn.add_argument('password', type=str, help='Password', location='json', required=True)
+
+@api.route('/user/basic-signin')
+class BasicLogin(Resource):
+    @api.expect(parser4BasicSignIn)
+    def post(self):
+        args = parser4BasicSignIn.parse_args()
+        email = args['email']
+        password = args['password']
+
+        if not email or not password :
+            return { "message" : "Please type email and password" }, 400
+
+        user = db.session.execute(db.select(User).filter_by(email=email)).first()
+        
+        if not user :
+            return { "message" : "User not found, please do register" }, 400
+
+        if not user[0].is_verify :
+            return { "message" : "Account not actived, check email to verify" }, 401
+
+        if check_password_hash(user[0].password, password):
+            payload = {
+                'id' : user[0].id,
+                'name' : user[0].name,
+                'email' : user[0].email
+            }
+
+            payload = f"{user[0].id}:{user[0].name}:{user[0].email}"
+
+            message_bytes = payload.encode('ascii')
+            base64_bytes = base64.b64encode(message_bytes)
+            base64_message = base64_bytes.decode('ascii')
+
+            return{ 'token' : base64_message }, 200
+        else:
+            return { "message" : "Wrong password, try again" }, 400
+
+
+parser4Basic = reqparse.RequestParser()
+parser4Basic.add_argument('Authorization', type=str, location='headers', required=True, help='Fill using token login')
+
+@api.route('/user/basic-auth')
+class BasicAuth(Resource):
+    @api.expect(parser4Basic)
+    def post(self):
+        print(f"ljjksfad")
+        args = parser4Basic.parse_args()
+        basicAuth = args['Authorization']
+        base64message = basicAuth[6:]
+        
+        msgBytes = base64message.encode('ascii')
+        base64Bytes = base64.b64decode(msgBytes)
+        pair = base64Bytes.decode('ascii')
+        id, name, email = pair.split(':')
+
+        return {
+            'id': id,
+            'name': name,
+            'email': email
+        }
 
 
 class Makanan(db.Model):
