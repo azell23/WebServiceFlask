@@ -384,7 +384,6 @@ parser4Basic.add_argument('Authorization', type=str, location='headers', require
 class BasicAuth(Resource):
     @api.expect(parser4Basic)
     def post(self):
-        print(f"ljjksfad")
         args = parser4Basic.parse_args()
         basicAuth = args['Authorization']
         base64message = basicAuth[6:]
